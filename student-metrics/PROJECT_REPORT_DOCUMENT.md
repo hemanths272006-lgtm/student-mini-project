@@ -270,3 +270,4 @@ The **Student Learning Performance Analysis System** demonstrates a full-stack, 
 4. **Outcome-Based Education (OBE) Principles**: Spady, W., *"Outcome-Based Education: Critical Issues and Answers"*, American Association of School Administrators.
 5. **Tailwind CSS**: Wathan, A. et al., *"Utility-First CSS Framework"*, https://tailwindcss.com/
 6. **Recharts**: Recharts Group, *"Redefined chart library built with React and D3"*, https://recharts.org/
+
