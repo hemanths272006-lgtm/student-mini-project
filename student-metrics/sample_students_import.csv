@@ -1,0 +1,22 @@
+usn,name,section,semester,attendance,subject,test,score
+1MS24CS201,Aarav Sharma,A,4,92.5,Mathematics,Test 1,88.5
+1MS24CS201,Aarav Sharma,A,4,92.5,Science,Test 1,84.0
+1MS24CS201,Aarav Sharma,A,4,92.5,English,Test 1,90.0
+1MS24CS201,Aarav Sharma,A,4,92.5,Computer Science,Test 1,94.5
+1MS24CS201,Aarav Sharma,A,4,92.5,Social Studies,Test 1,82.0
+1MS24CS201,Aarav Sharma,A,4,92.5,Mathematics,Test 2,91.0
+1MS24CS201,Aarav Sharma,A,4,92.5,Science,Test 2,86.5
+1MS24CS201,Aarav Sharma,A,4,92.5,English,Test 2,92.0
+1MS24CS201,Aarav Sharma,A,4,92.5,Computer Science,Test 2,96.0
+1MS24CS201,Aarav Sharma,A,4,92.5,Social Studies,Test 2,85.0
+1MS24CS202,Pooja Hegde,B,4,71.0,Mathematics,Test 1,42.0
+1MS24CS202,Pooja Hegde,B,4,71.0,Science,Test 1,46.5
+1MS24CS202,Pooja Hegde,B,4,71.0,English,Test 1,58.0
+1MS24CS202,Pooja Hegde,B,4,71.0,Computer Science,Test 1,48.0
+1MS24CS202,Pooja Hegde,B,4,71.0,Social Studies,Test 1,44.0
+1MS24CS203,Rohan Verma,C,4,84.0,Mathematics,Test 1,62.0
+1MS24CS203,Rohan Verma,C,4,84.0,Science,Test 1,65.5
+1MS24CS203,Rohan Verma,C,4,84.0,English,Test 1,72.0
+1MS24CS203,Rohan Verma,C,4,84.0,Computer Science,Test 1,68.0
+1MS24CS203,Rohan Verma,C,4,84.0,Social Studies,Test 1,59.0
+
