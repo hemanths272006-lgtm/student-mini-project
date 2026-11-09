@@ -43,7 +43,18 @@ export const LecturerDashboard = () => {
     );
   }
 
-  const { lecturer, stats, assigned_sections, assigned_subjects } = data;
+  const lecturer = data?.lecturer || {};
+  const stats = data?.stats || data?.kpi || {
+    total_students: 0,
+    fast_learners: 0,
+    average_learners: 0,
+    slow_learners: 0,
+    pending_proofs: 0,
+    pending_doubts: 0,
+    active_tests: 0
+  };
+  const assigned_sections = data?.assigned_sections || lecturer.assigned_sections || [];
+  const assigned_subjects = data?.assigned_subjects || lecturer.assigned_subjects || [];
 
   return (
     <div className="space-y-6">

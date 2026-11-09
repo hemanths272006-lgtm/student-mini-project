@@ -127,24 +127,38 @@ def get_lecturer_dashboard(
         .all()
     ) if assigned_subject_ids else []
 
+    assigned_sub_names = [a.subject_name for a in assignments]
+    active_tests_count = db.query(OnlineTest).filter(OnlineTest.is_active == True).count()
+
+    stats_data = {
+        "total_students": total_students,
+        "fast_learners": len(fast_learners),
+        "fast_learners_count": len(fast_learners),
+        "average_learners": len(avg_learners),
+        "average_learners_count": len(avg_learners),
+        "slow_learners": len(slow_learners),
+        "slow_learners_count": len(slow_learners),
+        "pending_proofs": pending_proofs_count,
+        "pending_doubts": pending_doubts_count,
+        "assigned_classes_count": len(assignments),
+        "active_tests": active_tests_count
+    }
+
     return {
         "lecturer": {
             "name": lec.user.name,
             "department": lec.department,
             "employee_id": lec.employee_id,
+            "qualification": lec.qualification,
+            "picture": lec.user.picture,
             "is_verified": lec.is_verified,
-            "assigned_subjects": [a.subject_name for a in assignments],
+            "assigned_subjects": assigned_sub_names,
             "assigned_sections": assigned_sections
         },
-        "kpi": {
-            "total_students": total_students,
-            "fast_learners_count": len(fast_learners),
-            "average_learners_count": len(avg_learners),
-            "slow_learners_count": len(slow_learners),
-            "pending_proofs": pending_proofs_count,
-            "pending_doubts": pending_doubts_count,
-            "assigned_classes_count": len(assignments)
-        },
+        "stats": stats_data,
+        "kpi": stats_data,
+        "assigned_sections": assigned_sections,
+        "assigned_subjects": assigned_sub_names,
         "recent_test_submissions": [
             {
                 "id": a.StudentTestAttempt.id,
@@ -165,43 +179,74 @@ def get_lecturer_dashboard(
 # ----------------------------------------------------
 @router.get("/learner-classification")
 def get_learner_classification(
-    category: Optional[str] = Query("Fast Learner"),
+    category: Optional[str] = Query("All"),
     section: Optional[str] = Query(None),
     subject: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Returns classified students for clickable Fast, Average, and Slow learner cards.
-    Supports sorting, subject strengths/weaknesses, and detailed metrics.
+    Supports sorting, subject strengths/weaknesses, search, and detailed metrics.
     """
     lec = get_lecturer_profile(current_user, db)
     assignments = db.query(SubjectAssignment).filter(SubjectAssignment.lecturer_id == lec.id).all()
     assigned_sections = list(set(a.section for a in assignments))
 
     # Query students in assigned sections
-    query = db.query(Student).filter(Student.section.in_(assigned_sections))
-    if section and section != "All" and section in assigned_sections:
+    query = db.query(Student)
+    if assigned_sections and "All" not in assigned_sections:
+        query = query.filter(Student.section.in_(assigned_sections))
+
+    if section and section != "All":
         query = query.filter(Student.section == section)
 
     students = query.all()
     all_data = [get_student_calculated(s, db) for s in students]
 
-    # Category filtering
-    target_category = category or "Fast Learner"
-    filtered = [s for s in all_data if s["category"].lower() == target_category.lower()]
+    # Category filtering (Fast, Average, Slow, or All)
+    cat_lower = (category or "All").lower()
+    if "fast" in cat_lower:
+        filtered = [s for s in all_data if s["category"] == "Fast Learner"]
+    elif "average" in cat_lower:
+        filtered = [s for s in all_data if s["category"] == "Average Learner"]
+    elif "slow" in cat_lower:
+        filtered = [s for s in all_data if s["category"] == "Slow Learner"]
+    else:
+        filtered = all_data
+
+    # Search filtering
+    if search:
+        s_query = search.strip().lower()
+        filtered = [
+            s for s in filtered
+            if s_query in s["name"].lower() or s_query in s["usn"].lower()
+        ]
 
     # Fast, Average, Slow summary counts for the cards
+    fast_c = sum(1 for s in all_data if s["category"] == "Fast Learner")
+    avg_c = sum(1 for s in all_data if s["category"] == "Average Learner")
+    slow_c = sum(1 for s in all_data if s["category"] == "Slow Learner")
+    total_c = len(all_data)
+
     summary = {
-        "fast_learners_count": sum(1 for s in all_data if s["category"] == "Fast Learner"),
-        "average_learners_count": sum(1 for s in all_data if s["category"] == "Average Learner"),
-        "slow_learners_count": sum(1 for s in all_data if s["category"] == "Slow Learner"),
-        "total_students": len(all_data)
+        "fast": fast_c,
+        "fast_learners": fast_c,
+        "fast_learners_count": fast_c,
+        "average": avg_c,
+        "average_learners": avg_c,
+        "average_learners_count": avg_c,
+        "slow": slow_c,
+        "slow_learners": slow_c,
+        "slow_learners_count": slow_c,
+        "total": total_c,
+        "total_students": total_c
     }
 
     return {
         "summary": summary,
-        "selected_category": target_category,
+        "selected_category": category,
         "students": filtered
     }
 

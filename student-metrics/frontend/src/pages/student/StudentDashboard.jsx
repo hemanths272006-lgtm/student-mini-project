@@ -45,7 +45,17 @@ export const StudentDashboard = () => {
     );
   }
 
-  const { student, kpi, online_tests, proofs, doubts, recommended_materials, timetable } = data;
+  const student = data?.student || {};
+  const kpi = data?.kpi || {
+    tests_completed: 0,
+    proofs_verified: 0,
+    doubts_answered: 0
+  };
+  const online_tests = data?.online_tests || [];
+  const proofs = data?.proofs || {};
+  const doubts = data?.doubts || {};
+  const recommended_materials = data?.recommended_materials || [];
+  const timetable = data?.timetable || [];
 
   return (
     <div className="space-y-6">

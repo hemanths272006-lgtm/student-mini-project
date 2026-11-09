@@ -110,30 +110,43 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
                 "lowest": round(min(scores), 1)
             })
 
+    kpi_data = {
+        "total_students": total_students,
+        "total_lecturers": total_lecturers,
+        "total_subjects": total_subjects,
+        "total_sections": total_sections,
+        "fast_learners": fast_count,
+        "average_learners": avg_count,
+        "slow_learners": slow_count,
+        "overall_average": overall_avg,
+        "average_attendance": avg_attendance,
+        "improving_count": improving_count,
+        "declining_count": declining_count,
+        "consistent_count": consistent_count,
+        "pending_lecturer_verifications": pending_lecturer_verifications,
+        "pending_proof_verifications": pending_proof_verifications,
+        "pending_study_proofs": pending_proof_verifications,
+        "pending_doubts": pending_doubts,
+    }
+
+    learner_dist = [
+        {"name": "Fast Learner", "count": fast_count, "color": "#10B981", "percentage": round(fast_count / total_students * 100, 1) if total_students else 0},
+        {"name": "Average Learner", "count": avg_count, "color": "#3B82F6", "percentage": round(avg_count / total_students * 100, 1) if total_students else 0},
+        {"name": "Slow Learner", "count": slow_count, "color": "#EF4444", "percentage": round(slow_count / total_students * 100, 1) if total_students else 0},
+    ]
+
+    sec_averages = [
+        {"section": f"Section {s['section']}", "average": s["average"], "attendance": s["attendance"]}
+        for s in section_performance
+    ]
+
     return {
-        "kpi": {
-            "total_students": total_students,
-            "total_lecturers": total_lecturers,
-            "total_subjects": total_subjects,
-            "total_sections": total_sections,
-            "fast_learners": fast_count,
-            "average_learners": avg_count,
-            "slow_learners": slow_count,
-            "overall_average": overall_avg,
-            "average_attendance": avg_attendance,
-            "improving_count": improving_count,
-            "declining_count": declining_count,
-            "consistent_count": consistent_count,
-            "pending_lecturer_verifications": pending_lecturer_verifications,
-            "pending_proof_verifications": pending_proof_verifications,
-            "pending_doubts": pending_doubts,
-        },
+        "kpi": kpi_data,
+        "kpis": kpi_data,
+        "learner_distribution": learner_dist,
+        "section_averages": sec_averages,
         "charts": {
-            "learner_distribution": [
-                {"name": "Fast Learner", "count": fast_count, "color": "#10B981"},
-                {"name": "Average Learner", "count": avg_count, "color": "#3B82F6"},
-                {"name": "Slow Learner", "count": slow_count, "color": "#EF4444"},
-            ],
+            "learner_distribution": learner_dist,
             "section_comparison": section_performance,
             "subject_performance": subject_performance,
             "trend_distribution": {
@@ -148,7 +161,8 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
                 "user_name": a.user_name,
                 "action": a.action,
                 "details": a.details,
-                "time": a.created_at.strftime("%b %d, %H:%M")
+                "time": a.created_at.strftime("%b %d, %H:%M"),
+                "created_at": a.created_at.isoformat()
             }
             for a in recent_activities
         ]

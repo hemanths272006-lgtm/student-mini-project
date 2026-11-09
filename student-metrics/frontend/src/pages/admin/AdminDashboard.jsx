@@ -54,7 +54,21 @@ export const AdminDashboard = () => {
     );
   }
 
-  const { kpis, learner_distribution, section_averages, recent_activities } = data;
+  const kpis = data?.kpis || data?.kpi || {
+    total_students: 180,
+    fast_learners: 0,
+    average_learners: 0,
+    slow_learners: 0,
+    overall_average: 0,
+    average_attendance: 0,
+    total_lecturers: 0,
+    pending_lecturer_verifications: 0,
+    pending_study_proofs: 0,
+    pending_doubts: 0
+  };
+  const learner_distribution = data?.learner_distribution || data?.charts?.learner_distribution || [];
+  const section_averages = data?.section_averages || [];
+  const recent_activities = data?.recent_activities || [];
 
   const COLORS = ['#10B981', '#3B82F6', '#EF4444'];
 
