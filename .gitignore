@@ -43,3 +43,8 @@ pnpm-debug.log*
 .vscode/
 .idea/
 *.sw?
+
+# Local helper and batch scripts
+*.bat
+*.cmd
+.env.example
