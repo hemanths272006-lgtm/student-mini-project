@@ -378,6 +378,7 @@ def get_study_proofs(
         for p in proofs
     ]
 
+@router.post("/proofs/{id}/verify")
 @router.put("/proofs/{id}/verify")
 def verify_study_proof(
     id: int,
@@ -496,12 +497,15 @@ def get_lecturer_materials(
     db: Session = Depends(get_db)
 ):
     lec = get_lecturer_profile(current_user, db)
-    materials = (
-        db.query(StudyMaterial)
-        .filter(StudyMaterial.uploaded_by == current_user.id)
-        .order_by(StudyMaterial.created_at.desc())
-        .all()
-    )
+    assignments = db.query(SubjectAssignment).filter(SubjectAssignment.lecturer_id == lec.id).all()
+    assigned_sub_ids = list(set(a.subject_id for a in assignments))
+
+    query = db.query(StudyMaterial)
+    if assigned_sub_ids:
+        query = query.filter(
+            (StudyMaterial.uploaded_by == current_user.id) | (StudyMaterial.subject_id.in_(assigned_sub_ids))
+        )
+    materials = query.order_by(StudyMaterial.created_at.desc()).all()
     return [
         {
             "id": m.id,

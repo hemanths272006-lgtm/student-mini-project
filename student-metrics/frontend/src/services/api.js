@@ -108,6 +108,16 @@ export const AdminService = {
     return res.data;
   },
 
+  replyDoubt: async (id, data) => {
+    const res = await api.post(`/admin/doubts/${id}/reply`, data);
+    return res.data;
+  },
+
+  deleteDoubt: async (id) => {
+    const res = await api.delete(`/admin/doubts/${id}`);
+    return res.data;
+  },
+
   getMaterials: async () => {
     const res = await api.get('/admin/materials');
     return res.data;

@@ -71,6 +71,13 @@ export default function App() {
           <Route path="/" element={<RootRedirect />} />
 
           {/* Shared Printable Student Report (Accessible by Admin and Faculty) */}
+          <Route path="/reports" element={<Navigate to="/report/1" replace />} />
+          <Route path="/report" element={<Navigate to="/report/1" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+          <Route path="/students" element={<Navigate to="/admin/students" replace />} />
+          <Route path="/analytics" element={<Navigate to="/admin/analytics" replace />} />
+          <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
+
           <Route
             path="/report/:id"
             element={

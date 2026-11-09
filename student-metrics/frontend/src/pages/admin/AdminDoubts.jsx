@@ -17,7 +17,9 @@ export const AdminDoubts = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedDoubt, setSelectedDoubt] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
+  const [markResolved, setMarkResolved] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     loadDoubts();
@@ -31,13 +33,39 @@ export const AdminDoubts = () => {
       if (filterStatus) params.status = filterStatus;
       const data = await AdminService.getDoubts(params);
       setDoubts(data);
-      if (data.length > 0 && !selectedDoubt) {
-        setSelectedDoubt(data[0]);
+      if (data.length > 0) {
+        // If a doubt was already selected, update it with fresh replies
+        setSelectedDoubt((prev) => {
+          if (!prev) return data[0];
+          const found = data.find((d) => d.id === prev.id);
+          return found || data[0];
+        });
+      } else {
+        setSelectedDoubt(null);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendReply = async (e) => {
+    e.preventDefault();
+    if (!selectedDoubt || !replyMessage.trim()) return;
+    try {
+      setSubmitting(true);
+      await AdminService.replyDoubt(selectedDoubt.id, {
+        message: replyMessage,
+        mark_resolved: markResolved
+      });
+      setMessage({ type: 'success', text: 'Admin response posted successfully.' });
+      setReplyMessage('');
+      loadDoubts();
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to post reply.' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -174,6 +202,37 @@ export const AdminDoubts = () => {
                     ))
                   )}
                 </div>
+
+                {/* Admin Official Reply Form */}
+                <form onSubmit={handleSendReply} className="pt-4 border-t border-slate-100 mt-4 space-y-3">
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="Provide official administrative guidance or faculty instruction..."
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={markResolved}
+                        onChange={(e) => setMarkResolved(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Mark Inquiry as Resolved</span>
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={submitting || !replyMessage.trim()}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{submitting ? 'Submitting...' : 'Post Admin Response'}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
             ) : (
               <div className="text-center text-slate-400 py-16">Select an inquiry to view details.</div>

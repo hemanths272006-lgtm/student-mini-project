@@ -36,7 +36,8 @@ export const AdminMaterials = () => {
     try {
       setLoading(true);
       const data = await AdminService.getMaterials();
-      setMaterials(data);
+      const list = Array.isArray(data) ? data : (data.study_materials || []);
+      setMaterials(list);
     } catch (err) {
       console.error(err);
     } finally {

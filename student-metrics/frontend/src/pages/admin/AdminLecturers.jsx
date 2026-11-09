@@ -218,24 +218,32 @@ export const AdminLecturers = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {!lec.is_verified ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleVerify(lec.id, 'approve')}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-                          </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {!lec.is_verified ? (
+                          <>
+                            <button
+                              onClick={() => handleVerify(lec.id, 'approve')}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleVerify(lec.id, 'reject')}
+                              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </>
+                        ) : (
                           <button
                             onClick={() => handleVerify(lec.id, 'reject')}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center gap-1"
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 border border-slate-200 hover:border-red-200 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Click to revoke faculty authorization"
                           >
-                            <XCircle className="w-3.5 h-3.5" /> Reject
+                            <XCircle className="w-3.5 h-3.5 text-red-500" /> Revoke Approval
                           </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">Authorized</span>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

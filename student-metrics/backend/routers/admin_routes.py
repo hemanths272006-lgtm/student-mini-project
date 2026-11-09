@@ -293,28 +293,30 @@ def update_lecturer(id: int, data: LecturerUpdateRequest, db: Session = Depends(
     db.commit()
     return {"message": "Lecturer details updated successfully."}
 
+@router.post("/lecturers/{id}/verify")
 @router.put("/lecturers/{id}/verify")
 def verify_lecturer(id: int, req: LecturerVerifyRequest, db: Session = Depends(get_db)):
     lec = db.query(Lecturer).filter(Lecturer.id == id).first()
     if not lec:
         raise HTTPException(status_code=404, detail="Lecturer not found.")
 
-    if req.action == "approve":
+    lec_name = lec.user.name if (lec.user and lec.user.name) else f"Employee {lec.employee_id}"
+    if req.action in ["approve", "verify"]:
         lec.is_verified = True
         db.add(ActivityLog(
             user_name="Admin",
             action="Approved Lecturer",
-            details=f"Approved verification for {lec.user.name}."
+            details=f"Approved verification for {lec_name}."
         ))
-        msg = f"Verification approved for {lec.user.name}."
+        msg = f"Verification approved for {lec_name}."
     else:
         lec.is_verified = False
         db.add(ActivityLog(
             user_name="Admin",
-            action="Rejected Lecturer Verification",
-            details=f"Rejected verification for {lec.user.name}."
+            action="Revoked Lecturer Verification",
+            details=f"Revoked verification for {lec_name}."
         ))
-        msg = f"Verification rejected for {lec.user.name}."
+        msg = f"Verification revoked for {lec_name}."
 
     db.commit()
     return {"message": msg, "is_verified": lec.is_verified}
@@ -401,21 +403,56 @@ def get_admin_doubts(
     doubts = query.order_by(Doubt.created_at.desc()).all()
     result = []
     for d in doubts:
-        replies_count = len(d.replies)
+        replies_list = [
+            {
+                "id": r.id,
+                "user_name": r.user.name if (r.user and r.user.name) else "Faculty/Admin",
+                "user_role": r.user.role if (r.user and r.user.role) else "Admin",
+                "message": r.message,
+                "file_url": r.file_url,
+                "created_at": r.created_at.isoformat()
+            }
+            for r in d.replies
+        ]
         result.append({
             "id": d.id,
-            "student_name": d.student.name if d.student else "Student",
-            "usn": d.student.usn if d.student else "",
+            "student_name": d.student.name if (d.student and d.student.name) else "Student",
+            "usn": d.student.usn if (d.student and d.student.usn) else "",
             "section": d.section,
-            "subject_name": d.subject.name if d.subject else "",
+            "subject_name": d.subject.name if (d.subject and d.subject.name) else "",
             "title": d.title,
             "description": d.description,
             "file_url": d.file_url,
             "status": d.status,
-            "replies_count": replies_count,
-            "created_at": d.created_at.strftime("%b %d, %Y %H:%M")
+            "replies": replies_list,
+            "replies_count": len(replies_list),
+            "created_at": d.created_at.isoformat()
         })
     return result
+
+@router.post("/doubts/{id}/reply")
+def reply_admin_doubt(id: int, req: DoubtReplyRequest, db: Session = Depends(get_db)):
+    d = db.query(Doubt).filter(Doubt.id == id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Doubt not found.")
+
+    admin_user = db.query(User).filter(User.role == "admin").first()
+    u_id = admin_user.id if admin_user else 1
+
+    reply = DoubtReply(
+        doubt_id=d.id,
+        user_id=u_id,
+        message=req.message,
+        file_url=req.file_url,
+        created_at=datetime.utcnow()
+    )
+    db.add(reply)
+    if req.mark_resolved:
+        d.status = "Resolved"
+    else:
+        d.status = "Answered"
+    db.commit()
+    return {"message": "Response submitted successfully."}
 
 @router.delete("/doubts/{id}")
 def delete_doubt(id: int, db: Session = Depends(get_db)):
