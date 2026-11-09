@@ -1,12 +1,16 @@
 import io
 import csv
+import os
+import shutil
+import uuid
 from contextlib import asynccontextmanager
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, Depends, HTTPException, Query, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from database import engine, Base, get_db, SessionLocal
 from models import Student, Subject, Assessment, Mark
@@ -21,10 +25,21 @@ from analysis import (
     classify_learner, calculate_learning_trend,
     compute_student_metrics, generate_seed_students_data
 )
+from seed_portals import seed_portals_data
+from routers import auth_routes, admin_routes, lecturer_routes, student_routes
 
 # Helper function to initialize database and seed on first run
 def init_db_and_seed():
     Base.metadata.create_all(bind=engine)
+    with engine.connect() as conn:
+        try:
+            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(students)")).fetchall()]
+            if cols and "user_id" not in cols:
+                conn.execute(text("ALTER TABLE students ADD COLUMN user_id INTEGER"))
+                conn.commit()
+                print("Migrated students table: added user_id column.")
+        except Exception as e:
+            print("Migration warning:", e)
     db = SessionLocal()
     try:
         # 1. Initialize Subjects if missing
@@ -82,6 +97,9 @@ def init_db_and_seed():
             print(f"Successfully seeded {len(seed_data)} students with marks.")
         else:
             print(f"Database already contains {student_count} students. Skipping seeding.")
+        
+        # 4. Initialize portal tables and seed users/lecturers/tests/proofs/doubts
+        seed_portals_data(db)
     finally:
         db.close()
 
@@ -107,6 +125,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static file uploads directory
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload endpoint for study proofs, materials, and question papers."""
+    cleaned_name = file.filename.replace(" ", "_").replace("/", "_").replace("\\", "_")
+    filename = f"{uuid.uuid4().hex[:10]}_{cleaned_name}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    file_url = f"/uploads/{filename}"
+    return {"url": file_url, "filename": file.filename}
+
+# Include upgraded portal routers
+app.include_router(auth_routes.router)
+app.include_router(admin_routes.router)
+app.include_router(lecturer_routes.router)
+app.include_router(student_routes.router)
 
 # ----------------------------------------------------
 # Helper to build student details with calculated metrics
