@@ -13,7 +13,7 @@ from models import (
 )
 from schemas import (
     LecturerCreateRequest, LecturerUpdateRequest, LecturerVerifyRequest,
-    StudyMaterialCreateRequest, PreviousYearPaperCreate
+    StudyMaterialCreateRequest, PreviousYearPaperCreate, DoubtReplyRequest
 )
 from auth import require_roles, hash_password
 from analysis import (
