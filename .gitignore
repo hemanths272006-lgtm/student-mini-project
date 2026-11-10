@@ -22,7 +22,8 @@ dist-ssr/
 
 # Uploaded media & documents
 uploads/*
-!uploads/.gitkeep
+student-metrics/backend/uploads/*
+!**/uploads/.gitkeep
 
 # Exclude report/presentation files
 *.pptx

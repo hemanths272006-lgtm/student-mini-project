@@ -31,15 +31,16 @@ from routers import auth_routes, admin_routes, lecturer_routes, student_routes
 # Helper function to initialize database and seed on first run
 def init_db_and_seed():
     Base.metadata.create_all(bind=engine)
-    with engine.connect() as conn:
-        try:
-            cols = [row[1] for row in conn.execute(text("PRAGMA table_info(students)")).fetchall()]
-            if cols and "user_id" not in cols:
-                conn.execute(text("ALTER TABLE students ADD COLUMN user_id INTEGER"))
-                conn.commit()
-                print("Migrated students table: added user_id column.")
-        except Exception as e:
-            print("Migration warning:", e)
+    if engine.dialect.name == "sqlite":
+        with engine.connect() as conn:
+            try:
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(students)")).fetchall()]
+                if cols and "user_id" not in cols:
+                    conn.execute(text("ALTER TABLE students ADD COLUMN user_id INTEGER"))
+                    conn.commit()
+                    print("Migrated students table: added user_id column.")
+            except Exception as e:
+                print("Migration warning:", e)
     db = SessionLocal()
     try:
         # 1. Initialize Subjects if missing
@@ -62,39 +63,57 @@ def init_db_and_seed():
                 db.add(new_ass)
         db.commit()
 
-        # 3. Check if students exist; if empty, seed 180 students
+        # 3. Check if students exist; if < 180, seed 180 students in fast batches
         student_count = db.query(Student).count()
-        if student_count == 0:
-            print("Database empty. Seeding 180 realistic students across Sections A, B, and C...")
+        if student_count < 180:
+            print(f"Database currently has {student_count} students. Seeding 180 realistic students across Sections A, B, and C...")
             seed_data = generate_seed_students_data()
 
             # Cache subjects and assessments for fast lookup
             sub_map = {s.name: s.id for s in db.query(Subject).all()}
             ass_map = {a.name: a.id for a in db.query(Assessment).all()}
 
+            existing_usns = {s.usn for s in db.query(Student.usn).all()}
+            students_to_add = []
+            seed_items_to_add = []
+
             for item in seed_data:
-                student = Student(
-                    student_id=item["student_id"],
-                    usn=item["usn"],
-                    name=item["name"],
-                    section=item["section"],
-                    semester=item["semester"],
-                    attendance=item["attendance"]
-                )
-                db.add(student)
-                db.flush()  # obtain student.id
-
-                for m in item["marks"]:
-                    mark_obj = Mark(
-                        student_id=student.id,
-                        subject_id=sub_map[m["subject"]],
-                        assessment_id=ass_map[m["test"]],
-                        score=m["score"]
+                if item["usn"] not in existing_usns:
+                    student = Student(
+                        student_id=item["student_id"],
+                        usn=item["usn"],
+                        name=item["name"],
+                        section=item["section"],
+                        semester=item["semester"],
+                        attendance=item["attendance"]
                     )
-                    db.add(mark_obj)
+                    students_to_add.append(student)
+                    seed_items_to_add.append(item)
 
-            db.commit()
-            print(f"Successfully seeded {len(seed_data)} students with marks.")
+            if students_to_add:
+                # Add all students and flush once to retrieve IDs
+                db.add_all(students_to_add)
+                db.flush()
+
+                # Build all marks
+                all_marks = []
+                for student, item in zip(students_to_add, seed_items_to_add):
+                    for m in item["marks"]:
+                        all_marks.append(Mark(
+                            student_id=student.id,
+                            subject_id=sub_map[m["subject"]],
+                            assessment_id=ass_map[m["test"]],
+                            score=m["score"]
+                        ))
+
+                # Batch insert marks in chunks of 500
+                chunk_size = 500
+                for i in range(0, len(all_marks), chunk_size):
+                    db.add_all(all_marks[i:i + chunk_size])
+                    db.flush()
+
+                db.commit()
+                print(f"Successfully seeded {len(students_to_add)} students and {len(all_marks)} marks.")
         else:
             print(f"Database already contains {student_count} students. Skipping seeding.")
         

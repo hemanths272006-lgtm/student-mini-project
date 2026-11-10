@@ -1,0 +1,30 @@
+services:
+  # FastAPI Backend
+  - type: web
+    name: student-metrics-backend
+    env: python
+    region: singapore
+    plan: free
+    rootDir: student-metrics/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+
+  # React Vite Frontend
+  - type: web
+    name: student-metrics-frontend
+    env: static
+    region: singapore
+    plan: free
+    rootDir: student-metrics/frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
