@@ -16,7 +16,8 @@ from schemas import (
 )
 from auth import require_roles, get_current_user
 from analysis import (
-    classify_learner, calculate_learning_trend, compute_student_metrics
+    classify_learner, calculate_learning_trend, compute_student_metrics,
+    batch_compute_students_metrics
 )
 
 router = APIRouter(
@@ -87,7 +88,8 @@ def get_lecturer_dashboard(
     ) if assigned_sections else []
 
     total_students = len(students)
-    student_metrics = [get_student_calculated(s, db) for s in students]
+    metrics_map = batch_compute_students_metrics(students, db)
+    student_metrics = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     fast_learners = [s for s in student_metrics if s["category"] == "Fast Learner"]
     avg_learners = [s for s in student_metrics if s["category"] == "Average Learner"]
@@ -203,7 +205,8 @@ def get_learner_classification(
         query = query.filter(Student.section == section)
 
     students = query.all()
-    all_data = [get_student_calculated(s, db) for s in students]
+    metrics_map = batch_compute_students_metrics(students, db)
+    all_data = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     # Category filtering (Fast, Average, Slow, or All)
     cat_lower = (category or "All").lower()

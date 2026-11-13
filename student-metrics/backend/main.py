@@ -23,7 +23,8 @@ from schemas import (
 from analysis import (
     SUBJECT_DEFAULTS, ASSESSMENT_DEFAULTS,
     classify_learner, calculate_learning_trend,
-    compute_student_metrics, generate_seed_students_data
+    compute_student_metrics, generate_seed_students_data,
+    batch_compute_students_metrics
 )
 from seed_portals import seed_portals_data
 from routers import auth_routes, admin_routes, lecturer_routes, student_routes
@@ -217,8 +218,9 @@ def get_dashboard(db: Session = Depends(get_db)):
             section_performance=[]
         )
 
-    # Calculate metrics for all students
-    all_data = [get_student_calculated_data(s, db) for s in students]
+    # Calculate metrics for all students using high-performance batch query
+    metrics_map = batch_compute_students_metrics(students, db)
+    all_data = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     total_students = len(all_data)
     fast_count = sum(1 for d in all_data if d["category"] == "Fast Learner")

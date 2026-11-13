@@ -17,7 +17,8 @@ from schemas import (
 )
 from auth import require_roles, hash_password
 from analysis import (
-    classify_learner, calculate_learning_trend, compute_student_metrics
+    classify_learner, calculate_learning_trend, compute_student_metrics,
+    batch_compute_students_metrics
 )
 
 router = APIRouter(
@@ -52,8 +53,9 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
     total_subjects = len(subjects)
     total_sections = 3
 
-    # Calculate student metrics
-    all_student_metrics = [get_student_metrics(s, db) for s in students]
+    # Calculate student metrics using high-performance batch query (1 round-trip instead of 360)
+    metrics_map = batch_compute_students_metrics(students, db)
+    all_student_metrics = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     fast_count = sum(1 for m in all_student_metrics if m["category"] == "Fast Learner")
     avg_count = sum(1 for m in all_student_metrics if m["category"] == "Average Learner")
@@ -85,7 +87,7 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
         sec_students = [s for s in students if s.section == sec]
         sec_total = len(sec_students)
         if sec_total > 0:
-            sec_metrics = [get_student_metrics(s, db) for s in sec_students]
+            sec_metrics = [metrics_map[s.id] for s in sec_students if s.id in metrics_map]
             sec_avg = round(sum(m["overall_average"] for m in sec_metrics) / sec_total, 2)
             sec_att = round(sum(s.attendance for s in sec_students) / sec_total, 1)
             section_performance.append({
@@ -346,9 +348,10 @@ def get_section_details(sec: str, db: Session = Depends(get_db)):
     students = db.query(Student).filter(Student.section == section_code).all()
     total = len(students)
 
+    metrics_map = batch_compute_students_metrics(students, db)
     all_data = []
     for s in students:
-        metrics = get_student_metrics(s, db)
+        metrics = metrics_map.get(s.id, {})
         all_data.append({
             "id": s.id,
             "student_id": s.student_id,
@@ -356,12 +359,12 @@ def get_section_details(sec: str, db: Session = Depends(get_db)):
             "name": s.name,
             "section": s.section,
             "attendance": s.attendance,
-            "overall_average": metrics["overall_average"],
-            "category": metrics["category"],
-            "trend": metrics["trend"],
-            "highest_subject": metrics["highest_subject"],
-            "lowest_subject": metrics["lowest_subject"],
-            "subject_averages": metrics["subject_averages"]
+            "overall_average": metrics.get("overall_average", 0.0),
+            "category": metrics.get("category", "Average Learner"),
+            "trend": metrics.get("trend", "Consistent"),
+            "highest_subject": metrics.get("highest_subject", ""),
+            "lowest_subject": metrics.get("lowest_subject", ""),
+            "subject_averages": metrics.get("subject_averages", {})
         })
 
     avg_score = round(sum(d["overall_average"] for d in all_data) / total, 2) if total else 0.0
