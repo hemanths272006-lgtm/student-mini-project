@@ -10,9 +10,9 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://postgres.izwuexcevtmxzfcjcfvn:shettydeepz%402327@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres
       - key: SUPABASE_URL
-        sync: false
+        value: https://izwuexcevtmxzfcjcfvn.supabase.co
 
   # React Vite Frontend
   - type: web
@@ -27,4 +27,3 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-
