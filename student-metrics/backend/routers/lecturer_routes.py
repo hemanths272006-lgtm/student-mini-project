@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from database import get_db
+from cache import cache
 from models import (
     User, Lecturer, SubjectAssignment, Student, Subject, Assessment, Mark,
     StudyProof, Doubt, DoubtReply, StudyMaterial, OnlineTest, TestQuestion,
@@ -68,6 +69,11 @@ def get_lecturer_dashboard(
     db: Session = Depends(get_db)
 ):
     lec = get_lecturer_profile(current_user, db)
+
+    cache_key = f"lecturer_dashboard_{lec.id}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
 
     # Get assigned classes
     assignments = (
@@ -146,7 +152,7 @@ def get_lecturer_dashboard(
         "active_tests": active_tests_count
     }
 
-    return {
+    result = {
         "lecturer": {
             "name": lec.user.name,
             "department": lec.department,
@@ -175,6 +181,8 @@ def get_lecturer_dashboard(
             for a in recent_attempts
         ]
     }
+    cache.set(cache_key, result, ttl=180)
+    return result
 
 # ----------------------------------------------------
 # 2. CLICKABLE LEARNER CLASSIFICATION (MOST IMPORTANT)

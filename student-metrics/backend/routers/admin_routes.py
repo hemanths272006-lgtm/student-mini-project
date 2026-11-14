@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from database import get_db
+from cache import cache
 from models import (
     User, Lecturer, SubjectAssignment, Student, Subject, Assessment, Mark,
     StudyProof, Doubt, DoubtReply, StudyMaterial, PreviousYearPaper,
@@ -44,6 +45,10 @@ def get_student_metrics(student: Student, db: Session):
 # ----------------------------------------------------
 @router.get("/dashboard")
 def get_admin_dashboard(db: Session = Depends(get_db)):
+    cached_dash = cache.get("admin_dashboard")
+    if cached_dash:
+        return cached_dash
+
     students = db.query(Student).all()
     lecturers = db.query(Lecturer).all()
     subjects = db.query(Subject).all()
@@ -142,7 +147,7 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
         for s in section_performance
     ]
 
-    return {
+    res = {
         "kpi": kpi_data,
         "kpis": kpi_data,
         "learner_distribution": learner_dist,
@@ -169,6 +174,8 @@ def get_admin_dashboard(db: Session = Depends(get_db)):
             for a in recent_activities
         ]
     }
+    cache.set("admin_dashboard", res, ttl=180)
+    return res
 
 # ----------------------------------------------------
 # 2. LECTURER MANAGEMENT
@@ -345,6 +352,11 @@ def get_section_details(sec: str, db: Session = Depends(get_db)):
     if section_code not in ["A", "B", "C"]:
         raise HTTPException(status_code=400, detail="Section must be A, B, or C.")
 
+    cache_key = f"admin_section_{section_code}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
     students = db.query(Student).filter(Student.section == section_code).all()
     total = len(students)
 
@@ -374,7 +386,7 @@ def get_section_details(sec: str, db: Session = Depends(get_db)):
     avg_count = sum(1 for d in all_data if d["category"] == "Average Learner")
     slow_count = sum(1 for d in all_data if d["category"] == "Slow Learner")
 
-    return {
+    res = {
         "section": f"Section {section_code}",
         "total_students": total,
         "average_score": avg_score,
@@ -384,6 +396,8 @@ def get_section_details(sec: str, db: Session = Depends(get_db)):
         "slow_learners": slow_count,
         "students": all_data
     }
+    cache.set(cache_key, res, ttl=180)
+    return res
 
 # ----------------------------------------------------
 # 4. DOUBT MANAGEMENT (ADMIN VIEW & MODERATION)
