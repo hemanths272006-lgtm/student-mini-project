@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 
 from database import engine, Base, get_db, SessionLocal
+from cache import cache
 from models import Student, Subject, Assessment, Mark
 from schemas import (
     StudentCreate, StudentUpdate, StudentListResponse, StudentListItem,
@@ -358,10 +359,15 @@ def get_students(
     sort_order: Optional[str] = Query("asc"),
     db: Session = Depends(get_db)
 ):
+    cache_key = f"students_list_{page}_{limit}_{section}_{category}_{sort_by}_{sort_order}_{search}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
     query = db.query(Student)
 
     # Filter by section
-    if section and section.upper() in ["A", "B", "C"]:
+    if section and isinstance(section, str) and section.upper() in ["A", "B", "C"]:
         query = query.filter(Student.section == section.upper())
 
     # Search filter (USN or Name)
@@ -371,8 +377,9 @@ def get_students(
 
     students = query.all()
 
-    # Calculate metrics for filtering & sorting
-    calculated_list = [get_student_calculated_data(s, db) for s in students]
+    # Calculate metrics for filtering & sorting in 1 fast batch
+    metrics_map = batch_compute_students_metrics(students, db)
+    calculated_list = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     # Category filter
     if category and category.lower() != "all":
@@ -419,7 +426,7 @@ def get_students(
         for item in paginated_items
     ]
 
-    return StudentListResponse(
+    res_obj = StudentListResponse(
         students=result_items,
         pagination={
             "total": total,
@@ -428,6 +435,8 @@ def get_students(
             "total_pages": total_pages
         }
     )
+    cache.set(cache_key, res_obj, ttl=180)
+    return res_obj
 
 @app.post("/api/students", response_model=StudentDetailResponse)
 def create_student(data: StudentCreate, db: Session = Depends(get_db)):
@@ -615,7 +624,8 @@ def delete_student(id: int, db: Session = Depends(get_db)):
 @app.get("/api/analytics", response_model=AnalyticsResponse)
 def get_analytics(db: Session = Depends(get_db)):
     students = db.query(Student).all()
-    all_data = [get_student_calculated_data(s, db) for s in students]
+    metrics_map = batch_compute_students_metrics(students, db)
+    all_data = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     # Section comparison
     sections = ["A", "B", "C"]
@@ -738,11 +748,13 @@ def get_student_report(id: int, db: Session = Depends(get_db)):
 
     detail = get_student_calculated_data(student, db)
 
-    # Class rank calculation
+    # Class and Section rank calculation in 1 fast batch
     all_students = db.query(Student).all()
+    all_metrics = batch_compute_students_metrics(all_students, db)
+
     all_avgs = [
-        (s.id, get_student_calculated_data(s, db)["overall_average"])
-        for s in all_students
+        (s.id, all_metrics[s.id]["overall_average"])
+        for s in all_students if s.id in all_metrics
     ]
     all_avgs.sort(key=lambda x: x[1], reverse=True)
     rank = next((idx + 1 for idx, item in enumerate(all_avgs) if item[0] == student.id), 1)
@@ -751,8 +763,8 @@ def get_student_report(id: int, db: Session = Depends(get_db)):
     # Section rank calculation
     sec_students = [s for s in all_students if s.section == student.section]
     sec_avgs = [
-        (s.id, get_student_calculated_data(s, db)["overall_average"])
-        for s in sec_students
+        (s.id, all_metrics[s.id]["overall_average"])
+        for s in sec_students if s.id in all_metrics
     ]
     sec_avgs.sort(key=lambda x: x[1], reverse=True)
     sec_rank = next((idx + 1 for idx, item in enumerate(sec_avgs) if item[0] == student.id), 1)
@@ -931,7 +943,8 @@ async def import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
 @app.get("/api/export-csv")
 def export_csv(db: Session = Depends(get_db)):
     students = db.query(Student).order_by(Student.section, Student.usn).all()
-    all_data = [get_student_calculated_data(s, db) for s in students]
+    metrics_map = batch_compute_students_metrics(students, db)
+    all_data = [metrics_map[s.id] for s in students if s.id in metrics_map]
 
     output = io.StringIO()
     writer = csv.writer(output)
