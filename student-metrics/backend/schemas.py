@@ -171,6 +171,28 @@ class CSVImportResponse(BaseModel):
 # 2. AUTHENTICATION & USER SCHEMAS (NEW)
 # ====================================================
 
+class UserRegisterRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., min_length=5, max_length=120)
+    password: str = Field(..., min_length=6, max_length=100)
+    role: Optional[str] = "student"
+    usn: Optional[str] = None
+    section: Optional[str] = "A"
+    department: Optional[str] = "Computer Science & Engineering"
+    phone: Optional[str] = None
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+    remember_me: Optional[bool] = False
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6, max_length=100)
+
 class GoogleLoginRequest(BaseModel):
     credential: Optional[str] = None
     email: Optional[str] = None

@@ -24,6 +24,33 @@ api.interceptors.request.use((config) => {
 // 1. AUTHENTICATION SERVICE
 // ====================================================
 export const AuthService = {
+  login: async (email, password, rememberMe = false) => {
+    const res = await api.post('/auth/login', {
+      email,
+      password,
+      remember_me: rememberMe,
+    });
+    return res.data;
+  },
+
+  register: async (payload) => {
+    const res = await api.post('/auth/register', payload);
+    return res.data;
+  },
+
+  forgotPassword: async (email) => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  },
+
+  resetPassword: async (token, newPassword) => {
+    const res = await api.post('/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+    return res.data;
+  },
+
   demoLogin: async (role, email, usn) => {
     const res = await api.post('/auth/demo-login', { role, email, usn });
     return res.data;

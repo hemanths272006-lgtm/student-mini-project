@@ -41,6 +41,14 @@ def init_db_and_seed():
                     conn.execute(text("ALTER TABLE students ADD COLUMN user_id INTEGER"))
                     conn.commit()
                     print("Migrated students table: added user_id column.")
+                u_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+                if u_cols:
+                    if "reset_token" not in u_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN reset_token VARCHAR(120)"))
+                    if "reset_token_expiry" not in u_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN reset_token_expiry TIMESTAMP"))
+                    conn.commit()
+                    print("Migrated users table: verified reset_token columns.")
             except Exception as e:
                 print("Migration warning:", e)
     db = SessionLocal()

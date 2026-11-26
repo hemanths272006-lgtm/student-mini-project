@@ -4,11 +4,17 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from database import SessionLocal, engine
 from models import Student, Subject, Assessment, Mark, User, Lecturer, OnlineTest, StudyProof, Doubt
-from schemas import DemoLoginRequest
-from routers.auth_routes import demo_login
+from schemas import (
+    DemoLoginRequest, UserLoginRequest, UserRegisterRequest,
+    ForgotPasswordRequest, ResetPasswordRequest
+)
+from routers.auth_routes import (
+    demo_login, login_user, register_user, forgot_password, reset_password
+)
 from routers.admin_routes import get_admin_dashboard, get_all_lecturers, get_section_details
 from routers.lecturer_routes import get_lecturer_dashboard, get_learner_classification
 from routers.student_routes import get_student_dashboard, get_student_tests, get_private_report_card
+from fastapi import Response
 
 print("=" * 60)
 print("VERIFYING SYSTEM BACKEND & DATABASE")
@@ -34,10 +40,15 @@ try:
     print(f"[OK] Lecturers: {lec_count}")
     print(f"[OK] Online Tests: {test_count}")
 
-    # 2. Test Auth demo login
-    admin_auth = demo_login(DemoLoginRequest(role="admin"), db)
-    lec_auth = demo_login(DemoLoginRequest(role="lecturer"), db)
-    stu_auth = demo_login(DemoLoginRequest(role="student"), db)
+    # 2. Test Auth demo login & real database credentials
+    res = Response()
+    admin_auth = demo_login(DemoLoginRequest(role="admin"), res, db)
+    lec_auth = demo_login(DemoLoginRequest(role="lecturer"), res, db)
+    stu_auth = demo_login(DemoLoginRequest(role="student"), res, db)
+
+    # Real Database Login
+    real_login = login_user(UserLoginRequest(email="admin@studentmetrics.edu", password="admin123"), res, db)
+    print(f"[OK] Real DB Auth: Logged in '{real_login.user['name']}' with encrypted PBKDF2 hash")
 
     print(f"[OK] Admin Auth: Token generated for '{admin_auth.user['name']}' (Role: {admin_auth.user['role']})")
     print(f"[OK] Lecturer Auth: Token generated for '{lec_auth.user['name']}' (Role: {lec_auth.user['role']})")

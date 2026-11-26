@@ -81,6 +81,8 @@ class User(Base):
     google_id = Column(String(100), unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    reset_token = Column(String(120), nullable=True, index=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
 
     lecturer_profile = relationship("Lecturer", back_populates="user", uselist=False, cascade="all, delete-orphan")
     student_profile = relationship("Student", back_populates="user", uselist=False)

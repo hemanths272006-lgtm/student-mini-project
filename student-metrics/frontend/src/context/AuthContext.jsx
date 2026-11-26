@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         }
       } else {
-        // Check if demo user saved in localStorage for quick reload
+        // Check if user object is cached in localStorage
         const savedUser = localStorage.getItem('auth_user');
         if (savedUser) {
           try {
@@ -39,6 +39,42 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
   }, []);
+
+  const login = async (email, password, rememberMe = false) => {
+    setLoading(true);
+    try {
+      const data = await AuthService.login(email, password, rememberMe);
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+      return data.user;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (payload) => {
+    setLoading(true);
+    try {
+      const data = await AuthService.register(payload);
+      localStorage.setItem('auth_token', data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+      return data.user;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email) => {
+    return await AuthService.forgotPassword(email);
+  };
+
+  const resetPassword = async (resetToken, newPassword) => {
+    return await AuthService.resetPassword(resetToken, newPassword);
+  };
 
   const loginWithDemo = async (role, email = null, usn = null) => {
     setLoading(true);
@@ -82,6 +118,10 @@ export const AuthProvider = ({ children }) => {
         loading,
         isAuthenticated: !!user,
         role: user?.role || null,
+        login,
+        register,
+        forgotPassword,
+        resetPassword,
         loginWithDemo,
         loginWithGoogle,
         logout,

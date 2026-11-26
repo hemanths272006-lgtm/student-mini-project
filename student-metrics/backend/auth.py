@@ -6,7 +6,7 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
@@ -86,19 +86,26 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 def get_current_user(
+    request: Request,
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ):
     from models import User
 
-    if not auth or not auth.credentials:
+    raw_token = None
+    if auth and auth.credentials:
+        raw_token = auth.credentials
+    elif request and "access_token" in request.cookies:
+        raw_token = request.cookies.get("access_token")
+
+    if not raw_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials not provided",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    payload = verify_token(auth.credentials)
+    payload = verify_token(raw_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

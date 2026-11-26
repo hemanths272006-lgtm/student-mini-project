@@ -6,7 +6,32 @@
 [![SQLite](https://img.shields.io/badge/Database-SQLite%203-003B57?style=flat&logo=sqlite)](https://www.sqlite.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A complete, full-stack Academic Management & Student Learning Performance Analysis System featuring **Three Dedicated Portals (Admin, Lecturer, Student)**, **Google OAuth 2.0 & Role-Based Access Control (RBAC)**, **Timed Online MCQ Assessments**, **Study Proof Submissions & Verification**, **Academic Doubt Moderation**, and **Automated Learner Classification** for 180 students across Sections A, B, and C.
+A complete, full-stack Academic Management & Student Learning Performance Analysis System featuring a **Premium Dark-Themed Authentication System (VaultCash Design)**, **Three Dedicated Portals (Admin, Lecturer, Student)**, **Real Database Salted PBKDF2 Password Encryption & JWT Sessions**, **Google OAuth 2.0 & Role-Based Access Control (RBAC)**, **Timed Online MCQ Assessments**, **Study Proof Submissions & Verification**, **Academic Doubt Moderation**, and **Automated Learner Classification** for 180 students across Sections A, B, and C.
+
+---
+
+## 🎨 Premium Authentication System (VaultCash Theme)
+
+The authentication system is completely redesigned with a commercial-grade dark aesthetic:
+* **Dark Navy & Black Palette**: High-contrast modern dark layout (`slate-950` with radial lighting and glassmorphism).
+* **Electric Blue Action Elements**: Glowing gradient primary buttons (`#2563eb` & `#3b82f6`) with smooth animations and transitions.
+* **Welcome Screen (`/welcome`)**: Project branding, "Track Your Learning. Improve Your Future." tagline, 3D academic intelligence stats card, and 1-click role previews.
+* **Login Screen (`/login`)**: Email & password inputs, password visibility toggle, Remember Me checkbox (30-day token), Google OAuth button, and 1-Click Fast Evaluator access.
+* **Registration Screen (`/register`)**: Student & Lecturer account registration, USN and Section selector, real-time password strength meter, duplicate email prevention. Admin self-registration is strictly blocked.
+* **Password Recovery (`/forgot-password` & `/reset-password`)**: Time-limited 1-hour secure tokens saved on database `users` table, with direct preview links for instant demo evaluation.
+
+### 🔑 Authentication API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Register new Student or Lecturer account in database with salted PBKDF2 hash |
+| `POST` | `/api/auth/login` | Authenticate with email & password, returns JWT token & sets HttpOnly cookie |
+| `GET` | `/api/auth/me` | Fetch authenticated user profile and linked role details |
+| `POST` | `/api/auth/logout` | Clear session and HttpOnly authentication cookie |
+| `POST` | `/api/auth/forgot-password` | Generate secure time-limited reset token in database |
+| `POST` | `/api/auth/reset-password` | Validate token and securely update password |
+| `POST` | `/api/auth/google` | Google OAuth 2.0 login and registration |
+| `POST` | `/api/auth/demo-login` | 1-Click instant access for Admin, Lecturer, and Student evaluation |
 
 ---
 
@@ -158,6 +183,18 @@ npm.cmd run dev
 *(Note: Use `npm.cmd run dev` on Windows PowerShell to prevent `npm.ps1` script execution policy errors).*
 
 * **Application URL**: [http://localhost:5173](http://localhost:5173)
+
+---
+
+### 👤 Pre-Configured Test Accounts (Real Database Credentials)
+
+| Role | Email | Password | Target Dashboard |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@studentmetrics.edu` | `admin123` | `/admin` (Dean of Academics) |
+| **Lecturer** | `vikram.hegde@studentmetrics.edu` | `lecturer123` | `/lecturer` (Faculty of CS) |
+| **Student** | `aarav.sharma@studentmetrics.edu` | `student123` | `/student` (USN: 1MS24CS001, Sec A) |
+
+*You can also register a brand new Student or Lecturer account on the `/register` page or click any of the 1-Click Fast Evaluator badges directly on the login screen.*
 
 ---
 

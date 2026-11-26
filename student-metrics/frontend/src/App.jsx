@@ -3,8 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-// Auth Page
+// Auth Pages
+import { WelcomePage } from './pages/WelcomePage';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 // Layouts
 import { AdminLayout } from './components/AdminLayout';
@@ -48,12 +52,12 @@ function RootRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
-  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+  if (!isAuthenticated || !user) return <Navigate to="/welcome" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />;
   return <Navigate to="/student" replace />;
@@ -64,8 +68,12 @@ export default function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public Login Route */}
+          {/* Public Welcome and Auth Routes */}
+          <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Root dynamic redirect */}
           <Route path="/" element={<RootRedirect />} />
